@@ -1,0 +1,2 @@
+ALTER TABLE workflow_tasks
+    ALTER COLUMN result TYPE VARCHAR(4000);

@@ -1,0 +1,1124 @@
+@if (!user) {
+  <main class="auth-shell">
+    <section class="auth-story">
+      <a class="brand" href="/" aria-label="AI Business Platform home">
+        <span class="brand-mark">A</span>
+        <span>AI Business Platform</span>
+      </a>
+      <div class="story-copy">
+        <p class="eyebrow">A calmer way to deliver</p>
+        <h1>Turn good ideas into <span>clear progress.</span></h1>
+        <p class="muted story-description">
+          Organize your projects, move work through approved workflows, and see what your team has completed.
+        </p>
+        <div class="story-stats">
+          <div><strong>01</strong><span>Plan the work</span></div>
+          <div><strong>02</strong><span>Review together</span></div>
+          <div><strong>03</strong><span>Track progress</span></div>
+        </div>
+      </div>
+      <p class="story-footer">A focused workspace for thoughtful teams.</p>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-card">
+        <p class="eyebrow">{{ authMode === 'login' ? 'WELCOME BACK' : 'GET STARTED' }}</p>
+        <h2>{{ authMode === 'login' ? 'Sign in to your workspace' : 'Create your account' }}</h2>
+        <p class="muted">
+          {{ authMode === 'login' ? 'Pick up where your team left off.' : 'Set up a workspace for your projects.' }}
+        </p>
+
+        @if (errorMessage) {
+          <div class="alert error" role="alert">{{ errorMessage }}</div>
+        }
+
+        @if (invitePreview) {
+          <div class="invitation-preview" role="status">
+            <strong>Invitation to {{ invitePreview.firmName }}</strong>
+            <span>{{ invitePreview.email }} · {{ invitePreview.role | lowercase }} · expires {{ invitePreview.expiresAt | date:'mediumDate' }}</span>
+          </div>
+        }
+
+        <form (ngSubmit)="submitAuth()" #authForm="ngForm">
+          @if (authMode === 'register') {
+            <div class="form-row">
+              <label>
+                First name
+                <input name="firstName" [(ngModel)]="firstName" required maxlength="100" autocomplete="given-name">
+              </label>
+              <label>
+                Last name
+                <input name="lastName" [(ngModel)]="lastName" required maxlength="100" autocomplete="family-name">
+              </label>
+            </div>
+            @if (!invitePreview) {
+              <label>
+                Firm name
+                <input name="firmName" [(ngModel)]="firmName" required maxlength="150" autocomplete="organization">
+              </label>
+            }
+          }
+          <label>
+            Email address
+            <input name="email" [(ngModel)]="email" required type="email" maxlength="320" autocomplete="email"
+                   [readonly]="!!invitePreview">
+          </label>
+          <label>
+            Password
+            <input name="password" [(ngModel)]="password" required type="password" minlength="8" maxlength="72"
+                   [autocomplete]="authMode === 'login' ? 'current-password' : 'new-password'">
+          </label>
+          <button class="button primary full-width" type="submit" [disabled]="authForm.invalid || busy">
+            {{ busy ? 'Please wait…' : authMode === 'login' ? 'Sign in' : 'Create account' }}
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        @if (!invitePreview) {
+        <p class="switch-auth">
+          {{ authMode === 'login' ? 'New to the platform?' : 'Already have an account?' }}
+          <button class="text-button" type="button"
+                  (click)="authMode = authMode === 'login' ? 'register' : 'login'; clearMessages()">
+            {{ authMode === 'login' ? 'Create an account' : 'Sign in' }}
+          </button>
+        </p>
+        }
+        <p class="privacy-note">Your sign-in token stays in this browser session.</p>
+      </div>
+    </section>
+  </main>
+} @else {
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="AI Business Platform home">
+        <span class="brand-mark">A</span>
+        <span>AI Business<br>Platform</span>
+      </a>
+      <div class="workspace-label">WORKSPACE</div>
+      <button class="nav-item active" type="button">
+        <span class="nav-icon">▦</span>
+        Accounting clients
+      </button>
+      <a class="nav-item" href="#sales-invoices">
+        <span class="nav-icon">＄</span>
+        Sales & invoices
+      </a>
+      <a class="nav-item" href="#supplier-bills">
+        <span class="nav-icon">▤</span>
+        Supplier bills
+      </a>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-note">
+        <span class="note-icon">✦</span>
+        <strong>Keep momentum</strong>
+        <p>Small steps, visible progress. Keep your team aligned on what matters.</p>
+      </div>
+      <div class="profile">
+        <div class="avatar">{{ user.firstName.slice(0, 1) }}{{ user.lastName.slice(0, 1) }}</div>
+        <div class="profile-info">
+          <strong>{{ user.firstName }} {{ user.lastName }}</strong>
+          <span>{{ user.firmName }} · {{ user.firmRole }}</span>
+        </div>
+        <button class="icon-button" type="button" (click)="logout()" aria-label="Sign out" title="Sign out">↗</button>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="breadcrumb"><span>Workspace</span><span class="crumb-divider">/</span><strong>Accounting clients</strong></div>
+        <div class="topbar-actions">
+          <span class="live-dot"></span><span class="quiet-label">Workspace ready</span>
+          <button class="button secondary compact" type="button" (click)="refresh()" [disabled]="busy">
+            <span aria-hidden="true">↻</span> Refresh
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <section class="page-heading">
+          <div>
+            <p class="eyebrow">ACCOUNTING WORKSPACE</p>
+            <h1>Client onboarding, <span>in motion.</span></h1>
+            <p class="muted">Coordinate client intake and document reviews in one clear workspace.</p>
+          </div>
+          <div class="date-chip"><span class="calendar-icon">▦</span>{{ accountingClients.length }} accounting clients</div>
+        </section>
+
+        @if (errorMessage) {
+          <div class="alert error" role="alert">
+            <span>{{ errorMessage }}</span>
+            @if (errorMessage.toLowerCase().includes('unauthorized')) {
+              <button class="text-button" type="button" (click)="logout()">Sign in again</button>
+            }
+          </div>
+        }
+        @if (successMessage) {
+          <div class="alert success" role="status">{{ successMessage }}</div>
+        }
+
+        <section class="overview-grid" aria-label="Progress overview">
+          <article class="metric-card">
+            <div class="metric-top"><span class="metric-icon violet">◈</span><span class="metric-caption">PORTFOLIO</span></div>
+            <strong class="metric-value">{{ accountingClients.length }}</strong>
+            <span class="metric-label">Accounting clients</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-top"><span class="metric-icon amber">↗</span><span class="metric-caption">REQUESTED</span></div>
+            <strong class="metric-value">{{ requestedOnboardingDocuments }}</strong>
+            <span class="metric-label">Documents outstanding</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-top"><span class="metric-icon blue">◎</span><span class="metric-caption">REVIEW</span></div>
+            <strong class="metric-value">{{ receivedOnboardingDocuments }}</strong>
+            <span class="metric-label">Documents received</span>
+          </article>
+          <article class="metric-card">
+            <div class="metric-top"><span class="metric-icon green">✓</span><span class="metric-caption">COMPLETE</span></div>
+            <strong class="metric-value">{{ completedClientOnboardings }}</strong>
+            <span class="metric-label">Client onboardings</span>
+          </article>
+        </section>
+
+        <section class="usage-card" aria-labelledby="usage-heading">
+          <div class="usage-heading">
+            <div>
+              <p class="eyebrow">AI SPENDING</p>
+              <h2 id="usage-heading">Monthly AI usage</h2>
+              <p class="usage-period">
+                @if (aiUsage) {
+                  Usage for {{ aiUsage.period }} · UTC
+                } @else {
+                  Usage and budget for this month
+                }
+              </p>
+            </div>
+            @if (aiUsageLoading) {
+              <span class="quiet-label" role="status">Updating usage…</span>
+            }
+          </div>
+
+          @if (aiUsageError) {
+            <p class="usage-error" role="alert">{{ aiUsageError }}</p>
+          } @else if (aiUsage) {
+            <div class="usage-summary">
+              <div>
+                <span class="usage-label">Spent</span>
+                <strong>{{ aiUsage.spentUsd | currency:'USD':'symbol':'1.2-4' }}</strong>
+              </div>
+              <div>
+                <span class="usage-label">Monthly limit</span>
+                <strong>{{ aiUsage.monthlyLimitUsd | currency:'USD':'symbol':'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span class="usage-label">Remaining</span>
+                <strong>{{ aiUsage.remainingUsd | currency:'USD':'symbol':'1.2-4' }}</strong>
+              </div>
+              <div>
+                <span class="usage-label">Tokens used</span>
+                <strong>{{ aiUsage.promptTokens + aiUsage.completionTokens | number }}</strong>
+                <small>{{ aiUsage.promptTokens | number }} prompt · {{ aiUsage.completionTokens | number }} completion</small>
+              </div>
+            </div>
+            <div class="usage-progress" role="progressbar"
+                 aria-label="Monthly AI budget used"
+                 [attr.aria-valuenow]="aiUsagePercent"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              <span [style.width.%]="aiUsagePercent"></span>
+            </div>
+            <p class="usage-caption">{{ aiUsagePercent | number:'1.0-1' }}% of monthly budget used</p>
+          } @else if (!aiUsageLoading) {
+            <p class="usage-error" role="alert">AI usage is unavailable.</p>
+          }
+        </section>
+
+        @if (firmTeam; as team) {
+          <section class="team-section" aria-labelledby="firm-team-heading">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">FIRM WORKSPACE</p>
+                <h2 id="firm-team-heading">{{ team.firmName }}</h2>
+              </div>
+              <span class="role-badge">{{ team.currentRole }}</span>
+            </div>
+
+            @if (canManageFirm) {
+              <form class="team-invite-form" (ngSubmit)="createFirmInvitation()" #inviteForm="ngForm">
+                <label>
+                  Invite by email
+                  <input name="inviteEmail" [(ngModel)]="inviteEmail" required type="email" maxlength="320"
+                         placeholder="teammate@example.com">
+                </label>
+                <label>
+                  Firm role
+                  <select name="inviteRole" [(ngModel)]="inviteRole" required>
+                    @if (canAssignAdmin) {
+                      <option value="ADMIN">Admin</option>
+                    }
+                    <option value="STAFF">Staff</option>
+                    <option value="VIEWER">Viewer</option>
+                  </select>
+                </label>
+                <button class="button primary" type="submit" [disabled]="inviteForm.invalid || busy">
+                  Create invite link
+                </button>
+              </form>
+
+              @if (createdInvitationUrl) {
+                <div class="invite-link-panel">
+                  <label>
+                    One-time invitation link
+                    <input [value]="createdInvitationUrl" readonly aria-label="One-time invitation link">
+                  </label>
+                  <button class="button secondary" type="button" (click)="copyInvitationLink()">Copy link</button>
+                  <span class="form-hint">Share this link privately. It expires after seven days and is shown only once.</span>
+                </div>
+              }
+            }
+
+            <div class="team-list">
+              @for (member of team.members; track member.id) {
+                <article class="team-member-row">
+                  <div class="row-copy">
+                    <strong>{{ member.firstName }} {{ member.lastName }}</strong>
+                    <small>{{ member.email }}</small>
+                  </div>
+                  @if (canManageMember(member)) {
+                    <select [ngModel]="memberRoleSelections[member.id]"
+                            (ngModelChange)="memberRoleSelections[member.id] = $event"
+                            [name]="'member-role-' + member.id" [disabled]="busy"
+                            [attr.aria-label]="'Role for ' + member.email">
+                      @if (canAssignAdmin) {
+                        <option value="ADMIN">Admin</option>
+                      }
+                      <option value="STAFF">Staff</option>
+                      <option value="VIEWER">Viewer</option>
+                    </select>
+                    <button class="button tiny secondary" type="button" [disabled]="busy"
+                            (click)="saveFirmMemberRole(member)">Save role</button>
+                    <button class="button tiny danger" type="button" [disabled]="busy"
+                            (click)="removeFirmMember(member)">Remove</button>
+                  } @else {
+                    <span class="role-badge">{{ member.role }}</span>
+                  }
+                </article>
+              }
+            </div>
+
+            @if (canManageFirm && team.invitations.length) {
+              <div class="pending-invitations">
+                <h3>Pending invitations</h3>
+                @for (invitation of team.invitations; track invitation.id) {
+                  <article class="team-member-row">
+                    <div class="row-copy">
+                      <strong>{{ invitation.email }}</strong>
+                      <small>{{ invitation.role }} · expires {{ invitation.expiresAt | date:'mediumDate' }}</small>
+                    </div>
+                    <button class="button tiny danger" type="button" [disabled]="busy"
+                            (click)="revokeFirmInvitation(invitation)">Revoke</button>
+                  </article>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <section class="client-onboarding" aria-labelledby="client-onboarding-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">CLIENT OPERATIONS</p>
+              <h2 id="client-onboarding-heading">Accounting client onboarding</h2>
+            </div>
+            <span class="record-count">{{ accountingClients.length }} CLIENTS</span>
+          </div>
+
+          <section class="template-manager" aria-labelledby="template-manager-heading">
+            <div class="template-manager-heading">
+              <div>
+                <p class="eyebrow">REUSABLE CHECKLISTS</p>
+                <h3 id="template-manager-heading">Onboarding templates</h3>
+                <p class="template-description">Create firm-specific checklists once, then reuse them for new clients.</p>
+              </div>
+              <span class="count-pill">{{ onboardingTemplates.length }}</span>
+            </div>
+
+            <div class="template-manager-grid">
+              <div class="template-list">
+                @if (onboardingTemplates.length) {
+                  @for (template of onboardingTemplates; track template.id) {
+                    <article class="template-row">
+                      <div class="row-copy">
+                        <strong>{{ template.name }}</strong>
+                        <small>{{ template.documentNames.length }} requirements</small>
+                      </div>
+                      @if (!isReadOnly) {
+                        <button class="button tiny secondary" type="button" [disabled]="busy"
+                                (click)="editOnboardingTemplate(template)">Edit</button>
+                        <button class="button tiny danger" type="button" [disabled]="busy"
+                                (click)="deleteOnboardingTemplate(template)">Delete</button>
+                      }
+                    </article>
+                  }
+                } @else {
+                  <p class="template-empty">No custom templates yet. The standard accounting checklist remains available.</p>
+                }
+              </div>
+
+              @if (!isReadOnly) {
+              <form class="template-editor" (ngSubmit)="saveOnboardingTemplate()" #templateForm="ngForm">
+                <p class="form-title">{{ editingTemplateId ? 'Edit template' : 'Create a template' }}</p>
+                <label>
+                  Template name
+                  <input name="templateName" [(ngModel)]="templateName" required maxlength="150"
+                         placeholder="e.g. Limited company annual accounts">
+                </label>
+                <label>
+                  Document requirements (one per line)
+                  <textarea name="templateDocumentNames" [(ngModel)]="templateDocumentNames"
+                            required rows="5" placeholder="Company registration certificate&#10;Latest trial balance"></textarea>
+                </label>
+                <div class="template-editor-actions">
+                  <button class="button primary" type="submit"
+                          [disabled]="templateForm.invalid || busy || !templateDocumentNames.trim()">
+                    {{ editingTemplateId ? 'Save changes' : 'Save template' }}
+                  </button>
+                  @if (editingTemplateId) {
+                    <button class="button secondary" type="button" [disabled]="busy"
+                            (click)="resetTemplateEditor()">Cancel</button>
+                  }
+                </div>
+                <span class="form-hint">Up to 50 unique requirements. Existing client checklists do not change when a template is edited.</span>
+              </form>
+              } @else {
+                <p class="form-hint">Viewer access is read-only. Ask a firm admin to update templates.</p>
+              }
+            </div>
+          </section>
+
+          <div class="client-onboarding-grid">
+            <section class="column-card" aria-label="Accounting clients">
+              <div class="column-heading">
+                <div><span class="column-icon">▧</span><h3>Client directory</h3></div>
+                <span class="count-pill">{{ accountingClients.length }}</span>
+              </div>
+              @if (accountingClients.length) {
+                <div class="client-list">
+                  @for (client of accountingClients; track client.id) {
+                    <button class="client-row" [class.selected]="selectedAccountingClientId === client.id"
+                            type="button" (click)="selectAccountingClient(client.id)">
+                      <span class="project-symbol">{{ client.legalName.slice(0, 1).toUpperCase() }}</span>
+                      <span class="row-copy">
+                        <strong>{{ client.legalName }}</strong>
+                        <small>{{ client.contactName }} · {{ client.approvedDocumentCount }}/{{ client.documentCount }} reviewed</small>
+                      </span>
+                      <span class="status-pill" [class]="client.onboardingStatus.toLowerCase().replace('_', '-')">
+                        {{ client.onboardingStatus.replace('_', ' ') }}
+                      </span>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <div class="empty-state compact-empty">
+                  <span class="empty-symbol">▧</span>
+                  <strong>No accounting clients yet</strong>
+                  <span>Add a client to start collecting onboarding requirements.</span>
+                </div>
+              }
+
+              @if (!isReadOnly) {
+              <form class="inline-create client-create" (ngSubmit)="createAccountingClient()" #clientForm="ngForm">
+                <p class="form-title">Add a client</p>
+                <label>
+                  Legal business name
+                  <input name="accountingClientLegalName" [(ngModel)]="accountingClientLegalName"
+                         required maxlength="200" placeholder="Example Ltd">
+                </label>
+                <label>
+                  Primary contact
+                  <input name="accountingClientContactName" [(ngModel)]="accountingClientContactName"
+                         required maxlength="200" placeholder="Contact name">
+                </label>
+                <div class="client-contact-fields">
+                  <label>
+                    Contact email
+                    <input name="accountingClientContactEmail" [(ngModel)]="accountingClientContactEmail"
+                           type="email" maxlength="320" placeholder="name@example.com">
+                  </label>
+                  <label>
+                    Phone
+                    <input name="accountingClientContactPhone" [(ngModel)]="accountingClientContactPhone"
+                           maxlength="40" placeholder="Optional">
+                  </label>
+                </div>
+                  <label>
+                    Checklist template
+                    <select name="selectedClientTemplateId" [(ngModel)]="selectedClientTemplateId">
+                      <option value="">Standard accounting onboarding</option>
+                      @for (template of onboardingTemplates; track template.id) {
+                        <option [value]="template.id">{{ template.name }} · {{ template.documentNames.length }} requirements</option>
+                      }
+                    </select>
+                  </label>
+                  <button class="button secondary full-width" type="submit" [disabled]="clientForm.invalid || busy">
+                    <span aria-hidden="true">＋</span> Add client & checklist
+                  </button>
+                  <span class="form-hint">Creates checklist requests from the selected template. No files are uploaded or stored.</span>
+              </form>
+              }
+            </section>
+
+            <section class="column-card client-detail-card" aria-label="Client onboarding checklist">
+              @if (selectedAccountingClient; as client) {
+                <div class="client-detail-heading">
+                  <div class="client-detail-title">
+                    <span class="project-symbol">{{ client.legalName.slice(0, 1).toUpperCase() }}</span>
+                    <div class="row-copy">
+                      <strong>{{ client.legalName }}</strong>
+                      <small>{{ client.contactName }}@if (client.contactEmail) { · {{ client.contactEmail }}}</small>
+                    </div>
+                  </div>
+                  <span class="status-pill" [class]="client.onboardingStatus.toLowerCase().replace('_', '-')">
+                    {{ client.onboardingStatus.replace('_', ' ') }}
+                  </span>
+                </div>
+
+                <div class="client-checklist-summary">
+                  <span>{{ client.approvedDocumentCount }} of {{ client.documentCount }} requirements approved</span>
+                  <div class="progress-track">
+                    <span [style.width.%]="client.documentCount ? (client.approvedDocumentCount / client.documentCount) * 100 : 0"></span>
+                  </div>
+                </div>
+
+                <div class="onboarding-document-list">
+                  @for (document of client.documents; track document.id) {
+                    <article class="onboarding-document">
+                      <div class="onboarding-document-copy">
+                        <strong>{{ document.name }}</strong>
+                        <span class="status-pill" [class]="document.status.toLowerCase()">{{ document.status }}</span>
+                      </div>
+                      <div class="onboarding-document-actions">
+                        @if (!isReadOnly) {
+                        @if (document.status === 'REQUESTED' || document.status === 'REJECTED') {
+                          <button class="button tiny secondary" type="button" [disabled]="busy"
+                                  (click)="updateOnboardingDocumentStatus(document, 'RECEIVED')">
+                            Mark received
+                          </button>
+                        } @else if (document.status === 'RECEIVED') {
+                          <button class="button tiny secondary" type="button" [disabled]="busy"
+                                  (click)="updateOnboardingDocumentStatus(document, 'REJECTED')">
+                            Request replacement
+                          </button>
+                          <button class="button tiny primary" type="button" [disabled]="busy"
+                                  (click)="updateOnboardingDocumentStatus(document, 'APPROVED')">
+                            Approve
+                          </button>
+                        }
+                        }
+                      </div>
+                    </article>
+                  }
+                </div>
+
+                @if (!isReadOnly) {
+                <form class="add-document-form" (ngSubmit)="addOnboardingDocument()" #documentForm="ngForm">
+                  <label>
+                    Add a client-specific requirement
+                    <input name="customOnboardingDocumentName" [(ngModel)]="customOnboardingDocumentName"
+                           required maxlength="200" placeholder="e.g. Proof of insurance">
+                  </label>
+                  <button class="button secondary" type="submit" [disabled]="documentForm.invalid || busy">
+                    Add requirement
+                  </button>
+                </form>
+                }
+                <p class="form-hint client-privacy-note">Checklist statuses only; this version does not upload documents.</p>
+              } @else {
+                <div class="empty-state client-detail-empty">
+                  <span class="empty-symbol">☷</span>
+                  <strong>Select a client</strong>
+                  <span>Their onboarding checklist and document review status will appear here.</span>
+                </div>
+              }
+            </section>
+          </div>
+        </section>
+
+        <section class="sales-section" id="sales-invoices" aria-labelledby="sales-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">COMMERCIAL OPERATIONS</p>
+              <h2 id="sales-heading">Sales & invoices</h2>
+            </div>
+            <span class="record-count">{{ salesInvoices.length }} INVOICES</span>
+          </div>
+
+          <div class="sales-forms-grid">
+            <section class="column-card sales-form-card" aria-label="Sales customers">
+              <div class="column-heading">
+                <div><span class="column-icon">◎</span><h3>Customers</h3></div>
+                <span class="count-pill">{{ salesCustomers.length }}</span>
+              </div>
+              @if (salesCustomers.length) {
+                <div class="sales-customer-list">
+                  @for (customer of salesCustomers; track customer.id) {
+                    <article class="sales-customer-row">
+                      <span class="project-symbol">{{ customer.name.slice(0, 1).toUpperCase() }}</span>
+                      <span class="row-copy">
+                        <strong>{{ customer.name }}</strong>
+                        <small>{{ customer.email || customer.phone || 'No contact details' }}</small>
+                      </span>
+                    </article>
+                  }
+                </div>
+              } @else {
+                <div class="empty-state compact-empty">
+                  <span class="empty-symbol">◎</span>
+                  <strong>No sales customers yet</strong>
+                  <span>Add a customer before creating an invoice.</span>
+                </div>
+              }
+
+              @if (!isReadOnly) {
+                <form class="inline-create" (ngSubmit)="createSalesCustomer()" #salesCustomerForm="ngForm">
+                  <p class="form-title">Add a customer</p>
+                  <label>
+                    Customer or business name
+                    <input name="salesCustomerName" [(ngModel)]="salesCustomerName" required maxlength="200"
+                           placeholder="Example Trading Ltd">
+                  </label>
+                  <label>
+                    Email address
+                    <input name="salesCustomerEmail" [(ngModel)]="salesCustomerEmail" type="email" maxlength="320"
+                           placeholder="billing@example.com">
+                  </label>
+                  <label>
+                    Phone
+                    <input name="salesCustomerPhone" [(ngModel)]="salesCustomerPhone" maxlength="40"
+                           placeholder="Optional">
+                  </label>
+                  <button class="button secondary full-width" type="submit"
+                          [disabled]="salesCustomerForm.invalid || busy">
+                    Add customer
+                  </button>
+                </form>
+              }
+            </section>
+
+            <section class="column-card sales-form-card" aria-label="Create sales invoice">
+              <div class="column-heading">
+                <div><span class="column-icon">＄</span><h3>New invoice</h3></div>
+              </div>
+              @if (!isReadOnly) {
+                <form class="inline-create sales-invoice-form" (ngSubmit)="createSalesInvoice()" #salesInvoiceForm="ngForm">
+                  <label>
+                    Invoice number
+                    <input name="salesInvoiceNumber" [(ngModel)]="salesInvoiceNumber" required maxlength="50"
+                           placeholder="INV-2026-001">
+                  </label>
+                  <label>
+                    Customer
+                    <select name="salesInvoiceCustomerId" [(ngModel)]="salesInvoiceCustomerId" required>
+                      <option value="" disabled>Select a customer</option>
+                      @for (customer of salesCustomers; track customer.id) {
+                        <option [value]="customer.id">{{ customer.name }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label>
+                    Description
+                    <input name="salesInvoiceDescription" [(ngModel)]="salesInvoiceDescription"
+                           required maxlength="500" placeholder="Consulting services">
+                  </label>
+                  <div class="sales-date-fields">
+                    <label>
+                      Issue date
+                      <input name="salesInvoiceIssueDate" [(ngModel)]="salesInvoiceIssueDate" required type="date">
+                    </label>
+                    <label>
+                      Due date
+                      <input name="salesInvoiceDueDate" [(ngModel)]="salesInvoiceDueDate" required type="date">
+                    </label>
+                  </div>
+                  <div class="sales-amount-fields">
+                    <label>
+                      Subtotal
+                      <input name="salesInvoiceSubtotal" [(ngModel)]="salesInvoiceSubtotal" required
+                             type="number" min="0.01" step="0.01" placeholder="1000.00">
+                    </label>
+                    <label>
+                      Tax rate (%)
+                      <input name="salesInvoiceTaxRate" [(ngModel)]="salesInvoiceTaxRate" required
+                             type="number" min="0" max="100" step="0.01">
+                    </label>
+                    <label>
+                      Currency
+                      <input name="salesInvoiceCurrency" [(ngModel)]="salesInvoiceCurrency" required
+                             maxlength="3" pattern="[A-Za-z]{3}" aria-label="Currency code">
+                    </label>
+                  </div>
+                  @if (!salesInvoiceDatesValid) {
+                    <span class="form-hint sales-validation-hint" role="alert">
+                      Due date must be on or after the issue date.
+                    </span>
+                  }
+                  <button class="button primary full-width" type="submit"
+                          [disabled]="salesInvoiceForm.invalid || !salesInvoiceDatesValid || !salesCustomers.length || busy">
+                    Issue invoice
+                  </button>
+                </form>
+              } @else {
+                <p class="form-hint sales-readonly-note">Viewer access is read-only. Ask a firm teammate to create invoices.</p>
+              }
+            </section>
+          </div>
+
+          <section class="column-card sales-invoice-list-card" aria-label="Sales invoices">
+            <div class="column-heading">
+              <div><span class="column-icon">▤</span><h3>Invoice register</h3></div>
+              <span class="count-pill">{{ salesInvoices.length }}</span>
+            </div>
+            @if (salesInvoices.length) {
+              <div class="sales-invoice-list">
+                @for (invoice of salesInvoices; track invoice.id) {
+                  <article class="sales-invoice-row">
+                    <div class="sales-invoice-main">
+                      <div class="sales-invoice-title">
+                        <div class="row-copy">
+                          <strong>{{ invoice.invoiceNumber }} · {{ invoice.customerName }}</strong>
+                          <small>{{ invoice.description }} · issued {{ invoice.issueDate }} · due {{ invoice.dueDate }}</small>
+                        </div>
+                        <span class="status-pill" [class]="salesInvoiceStatusClass(invoice.status)">
+                          {{ invoice.status.replace('_', ' ') }}
+                        </span>
+                      </div>
+                      <div class="sales-invoice-totals">
+                        <span>Total <strong>{{ invoice.totalAmount | number:'1.2-2' }} {{ invoice.currency }}</strong></span>
+                        <span>Paid <strong>{{ invoice.amountPaid | number:'1.2-2' }} {{ invoice.currency }}</strong></span>
+                        <span>Balance <strong>{{ invoice.balance | number:'1.2-2' }} {{ invoice.currency }}</strong></span>
+                      </div>
+                      @if (invoice.payments.length) {
+                        <div class="sales-payment-history">
+                          @for (payment of invoice.payments; track payment.id) {
+                            <span>{{ payment.paymentDate }} · {{ payment.amount | number:'1.2-2' }} {{ invoice.currency }}
+                              @if (payment.note) { · {{ payment.note }} }
+                            </span>
+                          }
+                        </div>
+                      }
+                      @if (!isReadOnly && invoice.balance > 0) {
+                        <form class="sales-payment-form" (ngSubmit)="recordSalesInvoicePayment(invoice)"
+                              #paymentForm="ngForm">
+                          <label>
+                            Payment amount
+                            <input [ngModel]="paymentAmounts[invoice.id] || ''"
+                                   (ngModelChange)="paymentAmounts[invoice.id] = $event"
+                                   [name]="'payment-amount-' + invoice.id"
+                                   required type="number" min="0.01" [max]="invoice.balance" step="0.01"
+                                   placeholder="Amount received">
+                          </label>
+                          <label>
+                            Payment date
+                            <input [(ngModel)]="paymentDate" [name]="'payment-date-' + invoice.id"
+                                   required type="date">
+                          </label>
+                          <button class="button tiny secondary" type="submit"
+                                  [disabled]="paymentForm.invalid || busy">
+                            Record payment
+                          </button>
+                        </form>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <div class="empty-state compact-empty">
+                <span class="empty-symbol">▤</span>
+                <strong>No invoices yet</strong>
+                <span>Create a customer, then issue your first sales invoice.</span>
+              </div>
+            }
+            <p class="form-hint sales-disclaimer">
+              Invoice amounts and tax are tracked for internal use. This MVP does not send invoices, generate PDFs, or process payments.
+            </p>
+          </section>
+        </section>
+
+        <section class="sales-section" id="supplier-bills" aria-labelledby="purchase-bills-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">PURCHASE OPERATIONS</p>
+              <h2 id="purchase-bills-heading">Supplier bills & expenses</h2>
+            </div>
+            <span class="record-count">{{ purchaseBills.length }} BILLS</span>
+          </div>
+
+          <section class="column-card purchase-bills-card" aria-label="Supplier bill register">
+            <div class="column-heading">
+              <div><span class="column-icon">▤</span><h3>Bill register</h3></div>
+              <span class="count-pill">{{ purchaseBills.length }}</span>
+            </div>
+            @if (purchaseBills.length) {
+              <div class="sales-invoice-list">
+                @for (bill of purchaseBills; track bill.id) {
+                  <article class="sales-invoice-row">
+                    <div class="sales-invoice-main">
+                      <div class="sales-invoice-title">
+                        <div class="row-copy">
+                          <strong>{{ bill.billNumber }} · {{ bill.supplierName }}</strong>
+                          <small>{{ bill.category }} · {{ bill.description }} · due {{ bill.dueDate }}</small>
+                        </div>
+                        <span class="status-pill" [class]="purchaseBillStatusClass(bill.status)">
+                          {{ bill.status.replace('_', ' ') }}
+                        </span>
+                      </div>
+                      <div class="sales-invoice-totals">
+                        <span>Total <strong>{{ bill.totalAmount | number:'1.2-2' }} {{ bill.currency }}</strong></span>
+                        <span>Paid <strong>{{ bill.amountPaid | number:'1.2-2' }} {{ bill.currency }}</strong></span>
+                        <span>Balance <strong>{{ bill.balance | number:'1.2-2' }} {{ bill.currency }}</strong></span>
+                      </div>
+                      @if (bill.payments.length) {
+                        <div class="sales-payment-history">
+                          @for (payment of bill.payments; track payment.id) {
+                            <span>{{ payment.paymentDate }} · {{ payment.amount | number:'1.2-2' }} {{ bill.currency }}
+                              @if (payment.note) { · {{ payment.note }} }
+                            </span>
+                          }
+                        </div>
+                      }
+                      @if (!isReadOnly && bill.balance > 0) {
+                        <form class="sales-payment-form" (ngSubmit)="recordPurchaseBillPayment(bill)"
+                              #billPaymentForm="ngForm">
+                          <label>
+                            Payment amount
+                            <input [ngModel]="billPaymentAmounts[bill.id] || ''"
+                                   (ngModelChange)="billPaymentAmounts[bill.id] = $event"
+                                   [name]="'bill-payment-amount-' + bill.id"
+                                   required type="number" min="0.01" [max]="bill.balance" step="0.01"
+                                   placeholder="Amount paid">
+                          </label>
+                          <label>
+                            Payment date
+                            <input [(ngModel)]="billPaymentDate" [name]="'bill-payment-date-' + bill.id"
+                                   required type="date">
+                          </label>
+                          <button class="button tiny secondary" type="submit"
+                                  [disabled]="billPaymentForm.invalid || busy">
+                            Record payment
+                          </button>
+                        </form>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <div class="empty-state compact-empty">
+                <span class="empty-symbol">▤</span>
+                <strong>No supplier bills yet</strong>
+                <span>Record a supplier bill to track its due date and payments.</span>
+              </div>
+            }
+            @if (!isReadOnly) {
+              <form class="inline-create purchase-bill-form" (ngSubmit)="createPurchaseBill()" #purchaseBillForm="ngForm">
+                <p class="form-title">Record a supplier bill</p>
+                <div class="purchase-bill-identity">
+                  <label>
+                    Supplier
+                    <input name="purchaseSupplierName" [(ngModel)]="purchaseSupplierName" required maxlength="200"
+                           placeholder="Supplier or business">
+                  </label>
+                  <label>
+                    Supplier bill number
+                    <input name="purchaseBillNumber" [(ngModel)]="purchaseBillNumber" required maxlength="50"
+                           placeholder="SUP-2026-001">
+                  </label>
+                  <label>
+                    Category
+                    <input name="purchaseBillCategory" [(ngModel)]="purchaseBillCategory" required maxlength="100"
+                           placeholder="Software, rent, supplies">
+                  </label>
+                </div>
+                <label>
+                  Description
+                  <input name="purchaseBillDescription" [(ngModel)]="purchaseBillDescription" required maxlength="500"
+                         placeholder="What was purchased or billed">
+                </label>
+                <div class="sales-date-fields">
+                  <label>
+                    Issue date
+                    <input name="purchaseBillIssueDate" [(ngModel)]="purchaseBillIssueDate" required type="date">
+                  </label>
+                  <label>
+                    Due date
+                    <input name="purchaseBillDueDate" [(ngModel)]="purchaseBillDueDate" required type="date">
+                  </label>
+                </div>
+                <div class="sales-amount-fields">
+                  <label>
+                    Subtotal
+                    <input name="purchaseBillSubtotal" [(ngModel)]="purchaseBillSubtotal" required
+                           type="number" min="0.01" step="0.01" placeholder="200.00">
+                  </label>
+                  <label>
+                    Tax rate (%)
+                    <input name="purchaseBillTaxRate" [(ngModel)]="purchaseBillTaxRate" required
+                           type="number" min="0" max="100" step="0.01">
+                  </label>
+                  <label>
+                    Currency
+                    <input name="purchaseBillCurrency" [(ngModel)]="purchaseBillCurrency" required
+                           maxlength="3" pattern="[A-Za-z]{3}" aria-label="Bill currency code">
+                  </label>
+                </div>
+                @if (!purchaseBillDatesValid) {
+                  <span class="form-hint sales-validation-hint" role="alert">
+                    Due date must be on or after the issue date.
+                  </span>
+                }
+                <button class="button primary" type="submit"
+                        [disabled]="purchaseBillForm.invalid || !purchaseBillDatesValid || busy">
+                  Record bill
+                </button>
+              </form>
+            } @else {
+              <p class="form-hint sales-readonly-note">Viewer access is read-only. Ask a firm teammate to record bills.</p>
+            }
+            <p class="form-hint sales-disclaimer">
+              Bill details are for internal tracking. This MVP does not store attachments or post expenses to a general ledger.
+            </p>
+          </section>
+        </section>
+
+        <section class="work-area">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">AUTOMATION</p>
+              <h2>Projects & workflows</h2>
+            </div>
+            <span class="record-count">{{ projects.length }} TOTAL</span>
+          </div>
+
+          <div class="selector-grid">
+            <label class="select-field">
+              <span>Project</span>
+              <select [ngModel]="selectedProjectId" (ngModelChange)="selectProject($event)" name="selectedProject">
+                <option value="">Choose a project</option>
+                @for (project of projects; track project.id) {
+                  <option [value]="project.id">{{ project.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="select-field">
+              <span>Workflow</span>
+              <select [ngModel]="selectedWorkflowId" (ngModelChange)="selectWorkflow($event)" name="selectedWorkflow"
+                      [disabled]="!selectedProjectId">
+                <option value="">Choose a workflow</option>
+                @for (workflow of workflows; track workflow.id) {
+                  <option [value]="workflow.id">{{ workflow.name }} · {{ workflow.status }}</option>
+                }
+              </select>
+            </label>
+            @if (selectedWorkflow && selectedWorkflow.status === 'PLANNED') {
+              @if (!isReadOnly) {
+              <button class="button primary run-button" type="button" (click)="executeWorkflow()"
+                      [disabled]="busy || !tasks.length || approvedTasks !== tasks.length">
+                Run workflow <span aria-hidden="true">→</span>
+              </button>
+              }
+            }
+          </div>
+
+          <div class="columns">
+            <section class="column-card">
+              <div class="column-heading">
+                <div><span class="column-icon">▧</span><h3>Projects</h3></div>
+                <span class="count-pill">{{ projects.length }}</span>
+              </div>
+              @if (projects.length) {
+                <div class="project-list">
+                  @for (project of projects; track project.id) {
+                    <button class="project-row" [class.selected]="selectedProjectId === project.id"
+                            type="button" (click)="selectProject(project.id)">
+                      <span class="project-symbol">{{ project.name.slice(0, 1).toUpperCase() }}</span>
+                      <span class="row-copy"><strong>{{ project.name }}</strong><small>{{ project.description || 'No description added' }}</small></span>
+                      <span class="row-arrow">›</span>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <div class="empty-state compact-empty">
+                  <span class="empty-symbol">▧</span>
+                  <strong>No projects yet</strong>
+                  <span>Create a project to get started.</span>
+                </div>
+              }
+              @if (!isReadOnly) {
+              <form class="inline-create" (ngSubmit)="createProject()" #projectForm="ngForm">
+                <p class="form-title">Create a project</p>
+                <input name="projectName" [(ngModel)]="projectName" required maxlength="150"
+                       placeholder="Project name" aria-label="Project name">
+                <textarea name="projectDescription" [(ngModel)]="projectDescription" maxlength="2000"
+                          rows="2" placeholder="A short description (optional)" aria-label="Project description"></textarea>
+                <input name="repositoryPath" [(ngModel)]="repositoryPath" maxlength="500"
+                       placeholder="Repository path (optional)" aria-label="Repository path">
+                <button class="button secondary full-width" type="submit" [disabled]="projectForm.invalid || busy">
+                  <span aria-hidden="true">＋</span> Add project
+                </button>
+              </form>
+              }
+            </section>
+
+            <section class="column-card">
+              <div class="column-heading">
+                <div><span class="column-icon workflow-icon">⌘</span><h3>Workflows</h3></div>
+                <span class="count-pill">{{ workflows.length }}</span>
+              </div>
+              @if (!selectedProjectId) {
+                <div class="empty-state compact-empty">
+                  <span class="empty-symbol">⌘</span>
+                  <strong>Select a project</strong>
+                  <span>Its workflows will appear here.</span>
+                </div>
+              } @else if (workflows.length) {
+                <div class="workflow-list">
+                  @for (workflow of workflows; track workflow.id) {
+                    <button class="workflow-row" [class.selected]="selectedWorkflowId === workflow.id"
+                            type="button" (click)="selectWorkflow(workflow.id)">
+                      <span class="workflow-symbol">↗</span>
+                      <span class="row-copy"><strong>{{ workflow.name }}</strong><small>Created {{ workflow.createdAt | date:'mediumDate' }}</small></span>
+                      <span class="status-pill" [class]="workflow.status.toLowerCase()">{{ workflow.status }}</span>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <div class="empty-state compact-empty">
+                  <span class="empty-symbol">⌘</span>
+                  <strong>No workflows yet</strong>
+                  <span>Add a workflow to organize tasks.</span>
+                </div>
+              }
+              @if (selectedProjectId) {
+                @if (!isReadOnly) {
+                <form class="inline-create" (ngSubmit)="createWorkflow()" #workflowForm="ngForm">
+                  <p class="form-title">Create a workflow</p>
+                  <input name="workflowName" [(ngModel)]="workflowName" required maxlength="150"
+                         placeholder="Workflow name" aria-label="Workflow name">
+                  <button class="button secondary full-width" type="submit" [disabled]="workflowForm.invalid || busy">
+                    <span aria-hidden="true">＋</span> Add workflow
+                  </button>
+                </form>
+                }
+              }
+            </section>
+          </div>
+        </section>
+
+        @if (selectedWorkflow) {
+          <section class="tasks-card">
+            <div class="section-heading task-section-heading">
+              <div>
+                <p class="eyebrow">WORK IN PROGRESS</p>
+                <h2>{{ selectedWorkflow.name }}</h2>
+              </div>
+              <span class="status-pill" [class]="selectedWorkflow.status.toLowerCase()">{{ selectedWorkflow.status }}</span>
+            </div>
+
+            @if (tasks.length) {
+              <div class="task-table">
+                <div class="task-table-head"><span>TASK</span><span>AGENT</span><span>APPROVAL</span><span>STATUS</span><span>ACTION</span></div>
+                @for (task of tasks; track task.id) {
+                  <article class="task-row">
+                    <div class="task-title">
+                      <span class="task-status-dot" [class]="task.status.toLowerCase()"></span>
+                      <div><strong>{{ task.title }}</strong><small>{{ task.description || 'No description' }}</small></div>
+                    </div>
+                    <span class="agent-role">{{ task.agentRole.replace('_', ' ') }}</span>
+                    <span class="status-pill" [class]="task.approvalStatus.toLowerCase()">{{ task.approvalStatus }}</span>
+                    <span class="status-pill" [class]="task.status.toLowerCase()">{{ task.status.replace('_', ' ') }}</span>
+                    <div class="task-actions">
+                      @if (isReadOnly) {
+                        <span class="quiet-label">Read only</span>
+                      } @else if (task.approvalStatus === 'PENDING' && task.status === 'TODO') {
+                        <button class="button tiny secondary" type="button" (click)="approveTask(task)" [disabled]="busy">Approve</button>
+                      } @else if (task.approvalStatus === 'APPROVED' && task.status === 'TODO' && selectedWorkflow.status === 'PLANNED') {
+                        <button class="button tiny primary" type="button" (click)="executeTask(task)" [disabled]="busy">Run</button>
+                      } @else if (task.status === 'BLOCKED') {
+                        <span class="failure-hint" [title]="task.lastExecutionFailure || ''">Blocked · {{ task.executionAttempts }} tries</span>
+                      } @else {
+                        <span class="quiet-label">—</span>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <div class="empty-state tasks-empty">
+                <span class="empty-symbol">☷</span>
+                <strong>No tasks in this workflow</strong>
+                <span>Add the first task below to start tracking progress.</span>
+              </div>
+            }
+
+            @if (selectedWorkflow.status === 'PLANNED') {
+              @if (!isReadOnly) {
+              <form class="task-create" (ngSubmit)="createTask()" #taskForm="ngForm">
+                <div class="task-create-title"><span class="column-icon">＋</span><strong>Add a task</strong></div>
+                <div class="task-create-fields">
+                  <input name="taskTitle" [(ngModel)]="taskTitle" required maxlength="200" placeholder="Task title" aria-label="Task title">
+                  <select name="agentRole" [(ngModel)]="agentRole" aria-label="Agent role">
+                    @for (role of agentRoles; track role) { <option [value]="role">{{ role.replace('_', ' ') }}</option> }
+                  </select>
+                  <input name="taskDescription" [(ngModel)]="taskDescription" maxlength="4000"
+                         placeholder="Description (optional)" aria-label="Task description">
+                  <button class="button primary" type="submit" [disabled]="taskForm.invalid || busy">Add task</button>
+                </div>
+                <span class="form-hint">New tasks require approval before they can run.</span>
+              </form>
+              }
+            }
+
+            <section class="run-history" aria-labelledby="run-history-heading">
+              <div class="run-history-heading">
+                <div>
+                  <p class="eyebrow">EXECUTION LOG</p>
+                  <h3 id="run-history-heading">Workflow run history</h3>
+                </div>
+                <span class="count-pill">{{ workflowRuns.length }}</span>
+              </div>
+              @if (workflowRuns.length) {
+                <ol class="run-list">
+                  @for (run of workflowRuns; track run.id) {
+                    <li class="run-item">
+                      <div class="run-summary">
+                        <span class="status-pill" [class]="run.status.toLowerCase()">{{ run.status }}</span>
+                        <strong>{{ run.completedTaskCount }} {{ run.completedTaskCount === 1 ? 'task' : 'tasks' }} completed</strong>
+                      </div>
+                      <div class="run-details">
+                        <span>Started {{ run.startedAt | date:'medium' }}</span>
+                        @if (run.completedAt) {
+                          <span>Finished {{ run.completedAt | date:'medium' }}</span>
+                        }
+                        <span>By {{ run.startedBy }}</span>
+                      </div>
+                      @if (run.failureReason) {
+                        <p class="run-failure">Run failed: {{ run.failureReason }}</p>
+                      }
+                    </li>
+                  }
+                </ol>
+              } @else {
+                <p class="run-empty">No workflow runs yet. Run this workflow to see its execution history.</p>
+              }
+            </section>
+          </section>
+        }
+
+        <footer class="page-footer">
+          <span>AI Business Platform</span>
+          <span>Plan with clarity · Deliver with confidence</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+}
